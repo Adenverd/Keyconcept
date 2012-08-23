@@ -1,0 +1,73 @@
+KeyConcept_Lucene
+Author: Sawyer Anderson (June 2012)
+
+This project is based off of the Keyconcept project (Dr. Susan Gauch, 2004). It provides most of the same functionalities of the original keyconcept, but using Lucene as the core indexer/retriever, and thus in Java. Lucene is a VERY powerful indexing tool. Should you desire to modify the existing code to suit a new purpose, it very likely can be done. See lucene.apache.org for the Lucene javadocs.
+
+Contents
+B. Compilation
+C. Classes
+  1. Index.java
+  2. Retrieve.java
+  3. CategoryIndex.java
+  4. CategoryRetrieve.java
+  5. Miscellaneous
+
+SECTION A: DEPENDENCIES
+This project currently depends on three external jars, found in KeyConcept_Lucene/libs. These are:
+
+jsoup-1.6.2.jar
+lucene-core-3.6.0.jar
+mysql-connector-java-6.1.21-bin.jar
+
+These jars MUST be present in KeyConcept_Lucene/libs in order for the program to work. The lucene core jar and the jsoup jar are integral to the project. The mysql jar is used only in the profiling classes to create and store user profiles in an SQL database.
+
+SECTION B: COMPILATION
+A compilation shell script exists in KeyConcept_Lucene/Scripts/compile.sh. Simply edit projDir to reflect your directory for the project, and then run compile.sh. Ant/Maven build file or makefile to come soon.
+  
+SECTION C: CLASSES
+1. Index.java
+Index.java can be used to both create a new index from a set of documents, or to access an existing index from another class. The index stores the contents, path, and size of each document to be indexed as Fields in a Document. Note that this index does NOT store category information. For a categorizing index, see CategoryIndex.java. Index.java can be used without any coding via its main function. To use Index.java, from a terminal at its source folder:
+
+javac Index.java
+java Index <Desired index output directory> <directory containing files to index, or null> <file that contains filenames to index, or null> <memory flag>
+
+Example:
+javac Index.java
+java Index /home/sawyer/Projects/MPSS/Index /home/sawyer/Projects/MPSS/FilesDirectory null true
+
+You can index using a directory, a file containing filenames, or both. Memory flag indicates whether you want indexing to be done in memory (true) or to allow Lucene to choose the optimal indexing method (false). In-memory indexing is generally faster for smaller (<500MB) file collections.
+
+Index.java also contains the code for querying the index from another class/piece of code via the .query() method. Also, indexing can take quite some time depending upon the number/size of files being indexed. For reference, it takes ~3 hours to index the top 5 ODP levels on a 3.4GHz processor with 16GB RAM. So it shouldn't take days, but it may not be super quick either.
+
+2. Retrieve.java
+Retrieve.java is simply a wrapper class around Index.java, specifically around the .query() method, that allows you to query against an index. Retrieve takes in a file, queries it against an index, and then outputs the ID, weight, and path of the closest matching documents in the index. To use Retrieve.java from the terminal at its source location:
+
+java Retrieve <Index directory> <query document, or null> <file with filenames of query documents, or null> <output file> <maximum number of result documents to retrieve per query document> <number of top occuring words to use in comparison to other documents>
+
+Example:
+java Retrieve /home/sawyer/Projects/MPSS/Index /home/sawyer/Projects/MPSS/QueryDocuments/Arabian_horse.html null /home/sawyer/Projects/MPSS/Output/RetrieveResults.txt 10 50
+
+The output file contains the name of each query document on one line, followed by the doc ID, weight, and path of each matching document, one per line.
+
+Retrieve is not meant to be accessed from other Java classes or programs. Anything resembling an API is to be found in Index.java.
+
+Note that Retrieve can be used on both an Index and a CategorizedIndex. Also note that if you use Retrieve twice, specifying the same output location both times, the newest results will be appended, and will not overwrite previous results.
+
+3. CategoryIndex.java
+A CategoryIndex uses information about files, along with the files themselves and their directories, to categorize them. This is most often done with data obtained via the Open Directory Project (dmoz.org). It uses a StandardTree file, which contains the category ID, sorted tree path, actual path, and name in tree to categorize files based on their paths. If you have access to hopper.csce.uark.edu, all files from the top 5 levels of the ODP and their corresponding StandardTree can be found at /data/ODP_Project/New_ODPFiles_5levels.tar.gz . Much like Index, CategoryIndex can be used from the terminal or from another java class. To use:
+
+java CategoryIndex <Desired categorized index output directory> <directory containing files to categorize> <StandardTree filepath> <memory flag>
+
+Again, memory flag indicates whether to index in memory (true) or to let Lucene choose how to index (false). After successful completion, a categorized index will be output the the specified location, along with a trimmed StandardTree.
+
+4. CategoryRetrieve.java
+A wrapper around CategoryIndex (specifically the .query() method), and can only be used on an index containing category information, and with a file named trimmed_standard_tree.txt in the same directory as the index. CategoryRetrieve queries a document or documents against an index containing category information, then writes the top N matching categories and their weights to a file. To use from the terminal:
+
+java CategoryRetrieve <Categorized Index directory> <query document, or null> <filenames file, or null> <output file> <number of result categories to output per query document> <number of top words to use when comparing documents> <number of top scoring documents to use when summing category weights>
+
+The output file will contain the path of the query document on one line, followed by the top matching categories and their weights, one per line.
+
+5. Miscellaneous
+FreqComparator and WeightComparator are simply classes the implement the Comparator interface, and serve simply to compare Map.Entry<String, Float> or Map.Entry<String, Integer> by value, rather than by key.
+
+main was used simply to test the various parts of the project.
